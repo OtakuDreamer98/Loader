@@ -31,158 +31,211 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "AimbotGUI"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
+gui.IgnoreGuiInset = true
+
+-- Scale for responsiveness
+local uiScale = Instance.new("UIScale", gui)
+uiScale.Scale = 1
 
 -- Main Frame
 local frame = Instance.new("Frame", gui)
-frame.Position = UDim2.new(0, 10, 0, 50)
-frame.Size = UDim2.new(0, 260, 0, 400)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+frame.Position = UDim2.new(0.5, -180, 0.5, -280) -- Centered horizontally and vertically (560/2 = 280)
+frame.Size = UDim2.new(0, 360, 0, 560) -- Larger size for "big" appearance
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
 frame.BorderSizePixel = 0
-frame.Visible = false
+frame.Visible = true -- GUI shows up by default
 frame.ClipsDescendants = true
 
 -- Add rounded corners
 local frameCorner = Instance.new("UICorner", frame)
-frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Add gradient
+local frameGradient = Instance.new("UIGradient", frame)
+frameGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 60))
+})
 
 -- Add shadow effect
 local shadow = Instance.new("ImageLabel", frame)
-shadow.Size = UDim2.new(1, 10, 1, 10)
-shadow.Position = UDim2.new(0, -5, 0, -5)
-shadow.Image = "rbxassetid://1316045217" -- Roblox shadow asset
-shadow.ImageTransparency = 0.5
+shadow.Size = UDim2.new(1, 20, 1, 20)
+shadow.Position = UDim2.new(0, -10, 0, -10)
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageTransparency = 0.6
 shadow.BackgroundTransparency = 1
 shadow.ZIndex = -1
 
 -- Title
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "⚙ Aimbot Settings"
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Text = "⚙ Aimbot Control Panel"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+title.BackgroundColor3 = Color3.fromRGB(15, 15, 35)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Center
 local titleCorner = Instance.new("UICorner", title)
-titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.CornerRadius = UDim.new(0, 12)
 
 -- Toggle Button (to show/hide GUI)
 local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 80, 0, 40)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 100)
+toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 80) -- Adjusted Y offset from 10 to 50
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 120)
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
+toggleBtn.TextSize = 16
 toggleBtn.Text = "Toggle GUI"
 local toggleBtnCorner = Instance.new("UICorner", toggleBtn)
-toggleBtnCorner.CornerRadius = UDim.new(0, 8)
+toggleBtnCorner.CornerRadius = UDim.new(0, 10)
+
+-- Hover effect for toggle button
+toggleBtn.MouseEnter:Connect(function()
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 150)
+end)
+toggleBtn.MouseLeave:Connect(function()
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 120)
+end)
 
 -- Close Button
 local closeBtn = Instance.new("TextButton", frame)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Size = UDim2.new(0, 40, 0, 40)
+closeBtn.Position = UDim2.new(1, -50, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
+closeBtn.TextSize = 16
 closeBtn.Text = "X"
 local closeBtnCorner = Instance.new("UICorner", closeBtn)
-closeBtnCorner.CornerRadius = UDim.new(0, 8)
+closeBtnCorner.CornerRadius = UDim.new(0, 10)
+
+-- Hover effect for close button
+closeBtn.MouseEnter:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+end)
+closeBtn.MouseLeave:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+end)
 
 -- Toggle Helper Function
 local function createToggle(name, posY, default, callback, tooltipText)
     local toggleFrame = Instance.new("Frame", frame)
-    toggleFrame.Size = UDim2.new(1, -20, 0, 50)
+    toggleFrame.Size = UDim2.new(1, -20, 0, 60)
     toggleFrame.Position = UDim2.new(0, 10, 0, posY)
     toggleFrame.BackgroundTransparency = 1
 
+    local toggleLabel = Instance.new("TextLabel", toggleFrame)
+    toggleLabel.Size = UDim2.new(0.7, 0, 0, 30)
+    toggleLabel.Position = UDim2.new(0, 0, 0, 0)
+    toggleLabel.BackgroundTransparency = 1
+    toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleLabel.Font = Enum.Font.Gotham
+    toggleLabel.TextSize = 14
+    toggleLabel.Text = name
+    toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
     local toggle = Instance.new("TextButton", toggleFrame)
-    toggle.Size = UDim2.new(1, 0, 0, 30)
-    toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    toggle.Size = UDim2.new(0.2, 0, 0, 30)
+    toggle.Position = UDim2.new(0.8, 0, 0, 0)
+    toggle.BackgroundColor3 = default and Color3.fromRGB(60, 200, 60) or Color3.fromRGB(200, 60, 60)
     toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     toggle.Font = Enum.Font.Gotham
-    toggle.TextSize = 14
-    toggle.Text = name .. ": " .. (default and "ON" or "OFF")
+    toggle.TextSize = 12
+    toggle.Text = default and "ON" or "OFF"
     local toggleCorner = Instance.new("UICorner", toggle)
-    toggleCorner.CornerRadius = UDim.new(0, 6)
-    local state = default
+    toggleCorner.CornerRadius = UDim.new(0, 15)
 
     local tooltip = Instance.new("TextLabel", toggleFrame)
     tooltip.Size = UDim2.new(1, 0, 0, 15)
-    tooltip.Position = UDim2.new(0, 0, 0, 32)
+    tooltip.Position = UDim2.new(0, 0, 0, 35)
     tooltip.BackgroundTransparency = 1
-    tooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+    tooltip.TextColor3 = Color3.fromRGB(180, 180, 180)
     tooltip.Font = Enum.Font.Gotham
     tooltip.TextSize = 10
     tooltip.Text = tooltipText
     tooltip.TextXAlignment = Enum.TextXAlignment.Left
 
     toggle.MouseButton1Click:Connect(function()
-        state = not state
-        toggle.Text = name .. ": " .. (state and "ON" or "OFF")
-        toggle.BackgroundColor3 = state and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
-        callback(state)
+        default = not default
+        toggle.Text = default and "ON" or "OFF"
+        toggle.BackgroundColor3 = default and Color3.fromRGB(60, 200, 60) or Color3.fromRGB(200, 60, 60)
+        callback(default)
+    end)
+
+    toggle.MouseEnter:Connect(function()
+        toggle.BackgroundColor3 = default and Color3.fromRGB(80, 220, 80) or Color3.fromRGB(220, 80, 80)
+    end)
+    toggle.MouseLeave:Connect(function()
+        toggle.BackgroundColor3 = default and Color3.fromRGB(60, 200, 60) or Color3.fromRGB(200, 60, 60)
     end)
 
     return toggle
 end
 
--- Create Toggles
-createToggle("Aimbot", 50, false, function(on)
+-- Create Toggles (same positions)
+createToggle("Aimbot", 60, false, function(on)
     aimbotEnabled = on
     fovCircle.Visible = on
 end, "Enable/disable aimbot functionality")
 
-createToggle("Raycast Check", 110, true, function(on)
+createToggle("Raycast Check", 120, true, function(on)
     raycastEnabled = on
 end, "Check for walls/obstacles")
 
-createToggle("Aim at Players", 170, true, function(on)
+createToggle("Aim at Players", 180, true, function(on)
     aimAtPlayers = on
 end, "Target players instead of NPCs")
 
-createToggle("Team Check", 230, false, function(on)
+createToggle("Team Check", 240, false, function(on)
     teamCheck = on
 end, "Avoid targeting teammates")
 
 -- Target Part Toggle
 local targetToggle = Instance.new("TextButton", frame)
-targetToggle.Size = UDim2.new(1, -20, 0, 30)
-targetToggle.Position = UDim2.new(0, 10, 0, 290)
-targetToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+targetToggle.Size = UDim2.new(1, -20, 0, 40)
+targetToggle.Position = UDim2.new(0, 10, 0, 300)
+targetToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
 targetToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 targetToggle.Font = Enum.Font.Gotham
 targetToggle.TextSize = 14
 targetToggle.Text = "Target Part: Head"
 local targetToggleCorner = Instance.new("UICorner", targetToggle)
-targetToggleCorner.CornerRadius = UDim.new(0, 6)
+targetToggleCorner.CornerRadius = UDim.new(0, 10)
 targetToggle.MouseButton1Click:Connect(function()
     targetPart = (targetPart == "Head") and "HumanoidRootPart" or "Head"
     targetToggle.Text = "Target Part: " .. targetPart
 end)
 
+-- Hover effect for target toggle
+targetToggle.MouseEnter:Connect(function()
+    targetToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+end)
+targetToggle.MouseLeave:Connect(function()
+    targetToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+end)
+
 local targetTooltip = Instance.new("TextLabel", frame)
 targetTooltip.Size = UDim2.new(1, -20, 0, 15)
-targetTooltip.Position = UDim2.new(0, 10, 0, 322)
+targetTooltip.Position = UDim2.new(0, 10, 0, 345)
 targetTooltip.BackgroundTransparency = 1
-targetTooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+targetTooltip.TextColor3 = Color3.fromRGB(180, 180, 180)
 targetTooltip.Font = Enum.Font.Gotham
 targetTooltip.TextSize = 10
 targetTooltip.Text = "Switch between head or body targeting"
 
 -- FOV Input
 local fovInput = Instance.new("TextBox", frame)
-fovInput.Size = UDim2.new(1, -20, 0, 30)
-fovInput.Position = UDim2.new(0, 10, 0, 350)
-fovInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+fovInput.Size = UDim2.new(1, -20, 0, 40)
+fovInput.Position = UDim2.new(0, 10, 0, 360)
+fovInput.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
 fovInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovInput.Font = Enum.Font.Gotham
 fovInput.TextSize = 14
 fovInput.Text = tostring(fov)
 fovInput.PlaceholderText = "FOV Radius (10-500)"
 local fovInputCorner = Instance.new("UICorner", fovInput)
-fovInputCorner.CornerRadius = UDim.new(0, 6)
+fovInputCorner.CornerRadius = UDim.new(0, 10)
 fovInput.FocusLost:Connect(function()
     local val = tonumber(fovInput.Text)
     if val then
@@ -196,15 +249,15 @@ end)
 
 -- FOV Color Selector
 local colorDropdown = Instance.new("TextButton", frame)
-colorDropdown.Size = UDim2.new(1, -20, 0, 30)
+colorDropdown.Size = UDim2.new(1, -20, 0, 40)
 colorDropdown.Position = UDim2.new(0, 10, 0, 410)
-colorDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+colorDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
 colorDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
 colorDropdown.Font = Enum.Font.Gotham
 colorDropdown.TextSize = 14
 colorDropdown.Text = "FOV Color: White"
 local colorDropdownCorner = Instance.new("UICorner", colorDropdown)
-colorDropdownCorner.CornerRadius = UDim.new(0, 6)
+colorDropdownCorner.CornerRadius = UDim.new(0, 10)
 
 local colors = {
     White = Color3.fromRGB(255, 255, 255),
@@ -224,18 +277,26 @@ colorDropdown.MouseButton1Click:Connect(function()
     colorDropdown.Text = "FOV Color: " .. key
 end)
 
+-- Hover effect for color dropdown
+colorDropdown.MouseEnter:Connect(function()
+    colorDropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+end)
+colorDropdown.MouseLeave:Connect(function()
+    colorDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+end)
+
 -- Aggression Input
 local aggressionInput = Instance.new("TextBox", frame)
-aggressionInput.Size = UDim2.new(1, -20, 0, 30)
-aggressionInput.Position = UDim2.new(0, 10, 0, 470)
-aggressionInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+aggressionInput.Size = UDim2.new(1, -20, 0, 40)
+aggressionInput.Position = UDim2.new(0, 10, 0, 460)
+aggressionInput.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
 aggressionInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 aggressionInput.Font = Enum.Font.Gotham
 aggressionInput.TextSize = 14
 aggressionInput.Text = tostring(aggression)
 aggressionInput.PlaceholderText = "Aggression (0.1-5.0)"
 local aggressionInputCorner = Instance.new("UICorner", aggressionInput)
-aggressionInputCorner.CornerRadius = UDim.new(0, 6)
+aggressionInputCorner.CornerRadius = UDim.new(0, 10)
 aggressionInput.FocusLost:Connect(function()
     local val = tonumber(aggressionInput.Text)
     if val then
@@ -248,12 +309,40 @@ end)
 
 local aggressionTooltip = Instance.new("TextLabel", frame)
 aggressionTooltip.Size = UDim2.new(1, -20, 0, 15)
-aggressionTooltip.Position = UDim2.new(0, 10, 0, 502)
+aggressionTooltip.Position = UDim2.new(0, 10, 0, 505)
 aggressionTooltip.BackgroundTransparency = 1
-aggressionTooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+aggressionTooltip.TextColor3 = Color3.fromRGB(180, 180, 180)
 aggressionTooltip.Font = Enum.Font.Gotham
 aggressionTooltip.TextSize = 10
 aggressionTooltip.Text = "Controls aimbot smoothness"
+
+-- Responsive Design for Small Widths
+local function adjustGuiForScreenSize()
+    local viewportSize = Camera.ViewportSize.X
+    if viewportSize <= 360 then
+        uiScale.Scale = 0.7
+        frame.Size = UDim2.new(0, 280, 0, 480) -- Adjusted for larger frame
+        frame.Position = UDim2.new(0.5, -140, 0.5, -240) -- Centered (480/2 = 240)
+        toggleBtn.Size = UDim2.new(0, 80, 0, 30)
+        title.TextSize = 16
+    elseif viewportSize <= 600 then
+        uiScale.Scale = 0.85
+        frame.Size = UDim2.new(0, 320, 0, 520) -- Adjusted for larger frame
+        frame.Position = UDim2.new(0.5, -160, 0.5, -260) -- Centered (520/2 = 260)
+        toggleBtn.Size = UDim2.new(0, 90, 0, 35)
+        title.TextSize = 18
+    else
+        uiScale.Scale = 1
+        frame.Size = UDim2.new(0, 360, 0, 560) -- Default larger size
+        frame.Position = UDim2.new(0.5, -180, 0.5, -280) -- Default centered position
+        toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+        title.TextSize = 20
+    end
+end
+
+-- Initial adjustment and update on screen size change
+adjustGuiForScreenSize()
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(adjustGuiForScreenSize)
 
 -- Draggable GUI
 local dragging, dragInput, dragStart, startPos
@@ -283,9 +372,16 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Toggle GUI Visibility
+-- Toggle GUI Visibility with Fade Animation
+local tweenService = game:GetService("TweenService")
+local fadeInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 toggleBtn.MouseButton1Click:Connect(function()
     frame.Visible = not frame.Visible
+    if frame.Visible then
+        frame.BackgroundTransparency = 1
+        local fadeIn = tweenService:Create(frame, fadeInfo, {BackgroundTransparency = 0})
+        fadeIn:Play()
+    end
 end)
 
 -- Close Button Functionality
@@ -303,7 +399,6 @@ local function isValidTarget(char)
     if aimAtPlayers then
         local plr = Players:GetPlayerFromCharacter(char)
         if not plr or plr == LocalPlayer then return false end
-        -- Exclude Rip_kaizer87
         if plr.Name == "Rip_kaizer87" then return false end
         if teamCheck and plr.Team == LocalPlayer.Team then return false end
     else
@@ -346,7 +441,7 @@ end
 -- Aimbot Logic
 RunService.RenderStepped:Connect(function()
     if not LocalPlayer.Character then return end
-    fovCircleSwedish = Camera.ViewportSize / 2
+    fovCircle.Position = Camera.ViewportSize / 2 -- Fixed typo: fovCircleSwedish to fovCircle
     fovCircle.Radius = fov * (Camera.ViewportSize.Y / 1080)
     if not aimbotEnabled then return end
     local target = getClosestTarget()
