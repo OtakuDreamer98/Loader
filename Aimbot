@@ -1,0 +1,367 @@
+-- WARNING: For educational use only
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- State variables
+local aimbotEnabled = false
+local raycastEnabled = true
+local targetPart = "Head"
+local fov = 100
+local aimAtPlayers = true
+local teamCheck = false
+local aggression = 3
+local fovColor = Color3.fromRGB(255, 255, 255)
+
+-- FOV Circle Drawing
+local fovCircle = Drawing.new("Circle")
+fovCircle.Color = fovColor
+fovCircle.Filled = false
+fovCircle.Thickness = 2
+fovCircle.NumSides = 100
+fovCircle.Visible = false
+fovCircle.Position = Camera.ViewportSize / 2
+fovCircle.Radius = fov
+
+-- GUI Setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "AimbotGUI"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+-- Main Frame
+local frame = Instance.new("Frame", gui)
+frame.Position = UDim2.new(0, 10, 0, 50)
+frame.Size = UDim2.new(0, 260, 0, 400)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.ClipsDescendants = true
+
+-- Add rounded corners
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 8)
+
+-- Add shadow effect
+local shadow = Instance.new("ImageLabel", frame)
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.Image = "rbxassetid://1316045217" -- Roblox shadow asset
+shadow.ImageTransparency = 0.5
+shadow.BackgroundTransparency = 1
+shadow.ZIndex = -1
+
+-- Title
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "⚙ Aimbot Settings"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Center
+local titleCorner = Instance.new("UICorner", title)
+titleCorner.CornerRadius = UDim.new(0, 8)
+
+-- Toggle Button (to show/hide GUI)
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 80, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 100)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Text = "Toggle GUI"
+local toggleBtnCorner = Instance.new("UICorner", toggleBtn)
+toggleBtnCorner.CornerRadius = UDim.new(0, 8)
+
+-- Close Button
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.Text = "X"
+local closeBtnCorner = Instance.new("UICorner", closeBtn)
+closeBtnCorner.CornerRadius = UDim.new(0, 8)
+
+-- Toggle Helper Function
+local function createToggle(name, posY, default, callback, tooltipText)
+    local toggleFrame = Instance.new("Frame", frame)
+    toggleFrame.Size = UDim2.new(1, -20, 0, 50)
+    toggleFrame.Position = UDim2.new(0, 10, 0, posY)
+    toggleFrame.BackgroundTransparency = 1
+
+    local toggle = Instance.new("TextButton", toggleFrame)
+    toggle.Size = UDim2.new(1, 0, 0, 30)
+    toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.Font = Enum.Font.Gotham
+    toggle.TextSize = 14
+    toggle.Text = name .. ": " .. (default and "ON" or "OFF")
+    local toggleCorner = Instance.new("UICorner", toggle)
+    toggleCorner.CornerRadius = UDim.new(0, 6)
+    local state = default
+
+    local tooltip = Instance.new("TextLabel", toggleFrame)
+    tooltip.Size = UDim2.new(1, 0, 0, 15)
+    tooltip.Position = UDim2.new(0, 0, 0, 32)
+    tooltip.BackgroundTransparency = 1
+    tooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+    tooltip.Font = Enum.Font.Gotham
+    tooltip.TextSize = 10
+    tooltip.Text = tooltipText
+    tooltip.TextXAlignment = Enum.TextXAlignment.Left
+
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.Text = name .. ": " .. (state and "ON" or "OFF")
+        toggle.BackgroundColor3 = state and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+        callback(state)
+    end)
+
+    return toggle
+end
+
+-- Create Toggles
+createToggle("Aimbot", 50, false, function(on)
+    aimbotEnabled = on
+    fovCircle.Visible = on
+end, "Enable/disable aimbot functionality")
+
+createToggle("Raycast Check", 110, true, function(on)
+    raycastEnabled = on
+end, "Check for walls/obstacles")
+
+createToggle("Aim at Players", 170, true, function(on)
+    aimAtPlayers = on
+end, "Target players instead of NPCs")
+
+createToggle("Team Check", 230, false, function(on)
+    teamCheck = on
+end, "Avoid targeting teammates")
+
+-- Target Part Toggle
+local targetToggle = Instance.new("TextButton", frame)
+targetToggle.Size = UDim2.new(1, -20, 0, 30)
+targetToggle.Position = UDim2.new(0, 10, 0, 290)
+targetToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+targetToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+targetToggle.Font = Enum.Font.Gotham
+targetToggle.TextSize = 14
+targetToggle.Text = "Target Part: Head"
+local targetToggleCorner = Instance.new("UICorner", targetToggle)
+targetToggleCorner.CornerRadius = UDim.new(0, 6)
+targetToggle.MouseButton1Click:Connect(function()
+    targetPart = (targetPart == "Head") and "HumanoidRootPart" or "Head"
+    targetToggle.Text = "Target Part: " .. targetPart
+end)
+
+local targetTooltip = Instance.new("TextLabel", frame)
+targetTooltip.Size = UDim2.new(1, -20, 0, 15)
+targetTooltip.Position = UDim2.new(0, 10, 0, 322)
+targetTooltip.BackgroundTransparency = 1
+targetTooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+targetTooltip.Font = Enum.Font.Gotham
+targetTooltip.TextSize = 10
+targetTooltip.Text = "Switch between head or body targeting"
+
+-- FOV Input
+local fovInput = Instance.new("TextBox", frame)
+fovInput.Size = UDim2.new(1, -20, 0, 30)
+fovInput.Position = UDim2.new(0, 10, 0, 350)
+fovInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+fovInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovInput.Font = Enum.Font.Gotham
+fovInput.TextSize = 14
+fovInput.Text = tostring(fov)
+fovInput.PlaceholderText = "FOV Radius (10-500)"
+local fovInputCorner = Instance.new("UICorner", fovInput)
+fovInputCorner.CornerRadius = UDim.new(0, 6)
+fovInput.FocusLost:Connect(function()
+    local val = tonumber(fovInput.Text)
+    if val then
+        fov = math.clamp(val, 10, 500)
+        fovInput.Text = tostring(fov)
+        fovCircle.Radius = fov * (Camera.ViewportSize.Y / 1080)
+    else
+        fovInput.Text = tostring(fov)
+    end
+end)
+
+-- FOV Color Selector
+local colorDropdown = Instance.new("TextButton", frame)
+colorDropdown.Size = UDim2.new(1, -20, 0, 30)
+colorDropdown.Position = UDim2.new(0, 10, 0, 410)
+colorDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+colorDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+colorDropdown.Font = Enum.Font.Gotham
+colorDropdown.TextSize = 14
+colorDropdown.Text = "FOV Color: White"
+local colorDropdownCorner = Instance.new("UICorner", colorDropdown)
+colorDropdownCorner.CornerRadius = UDim.new(0, 6)
+
+local colors = {
+    White = Color3.fromRGB(255, 255, 255),
+    Red = Color3.fromRGB(255, 0, 0),
+    Green = Color3.fromRGB(0, 255, 0),
+    Blue = Color3.fromRGB(0, 0, 255),
+    Purple = Color3.fromRGB(128, 0, 128)
+}
+local colorKeys = {"White", "Red", "Green", "Blue", "Purple"}
+local colorIndex = 1
+
+colorDropdown.MouseButton1Click:Connect(function()
+    colorIndex = (colorIndex % #colorKeys) + 1
+    local key = colorKeys[colorIndex]
+    fovColor = colors[key]
+    fovCircle.Color = fovColor
+    colorDropdown.Text = "FOV Color: " .. key
+end)
+
+-- Aggression Input
+local aggressionInput = Instance.new("TextBox", frame)
+aggressionInput.Size = UDim2.new(1, -20, 0, 30)
+aggressionInput.Position = UDim2.new(0, 10, 0, 470)
+aggressionInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+aggressionInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+aggressionInput.Font = Enum.Font.Gotham
+aggressionInput.TextSize = 14
+aggressionInput.Text = tostring(aggression)
+aggressionInput.PlaceholderText = "Aggression (0.1-5.0)"
+local aggressionInputCorner = Instance.new("UICorner", aggressionInput)
+aggressionInputCorner.CornerRadius = UDim.new(0, 6)
+aggressionInput.FocusLost:Connect(function()
+    local val = tonumber(aggressionInput.Text)
+    if val then
+        aggression = math.clamp(val, 0.1, 5)
+        aggressionInput.Text = tostring(aggression)
+    else
+        aggressionInput.Text = tostring(aggression)
+    end
+end)
+
+local aggressionTooltip = Instance.new("TextLabel", frame)
+aggressionTooltip.Size = UDim2.new(1, -20, 0, 15)
+aggressionTooltip.Position = UDim2.new(0, 10, 0, 502)
+aggressionTooltip.BackgroundTransparency = 1
+aggressionTooltip.TextColor3 = Color3.fromRGB(150, 150, 150)
+aggressionTooltip.Font = Enum.Font.Gotham
+aggressionTooltip.TextSize = 10
+aggressionTooltip.Text = "Controls aimbot smoothness"
+
+-- Draggable GUI
+local dragging, dragInput, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Toggle GUI Visibility
+toggleBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
+end)
+
+-- Close Button Functionality
+closeBtn.MouseButton1Click:Connect(function()
+    frame.Visible = false
+end)
+
+-- Targeting Logic
+local function isValidTarget(char)
+    if not char or not LocalPlayer.Character then return false end
+    local part = char:FindFirstChild(targetPart)
+    local hum = char:FindFirstChild("Humanoid")
+    if not part or not hum or hum.Health <= 0 then return false end
+
+    if aimAtPlayers then
+        local plr = Players:GetPlayerFromCharacter(char)
+        if not plr or plr == LocalPlayer then return false end
+        -- Exclude Rip_kaizer87
+        if plr.Name == "Rip_kaizer87" then return false end
+        if teamCheck and plr.Team == LocalPlayer.Team then return false end
+    else
+        if Players:GetPlayerFromCharacter(char) then return false end
+    end
+    return true
+end
+
+-- Raycast
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+local function getClosestTarget()
+    local closest, minDist = nil, math.huge
+    for _, char in ipairs(workspace:GetChildren()) do
+        if isValidTarget(char) then
+            local part = char:FindFirstChild(targetPart)
+            local screenPos, visible = Camera:WorldToViewportPoint(part.Position)
+            if visible and screenPos.Z > 0 then
+                local dist = (Vector2.new(screenPos.X, screenPos.Y) - Camera.ViewportSize / 2).Magnitude
+                if dist < fov and dist < minDist then
+                    if raycastEnabled then
+                        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character or {}}
+                        local ray = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, raycastParams)
+                        if ray and ray.Instance and ray.Instance:IsDescendantOf(char) then
+                            minDist = dist
+                            closest = part
+                        end
+                    else
+                        minDist = dist
+                        closest = part
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Aimbot Logic
+RunService.RenderStepped:Connect(function()
+    if not LocalPlayer.Character then return end
+    fovCircleSwedish = Camera.ViewportSize / 2
+    fovCircle.Radius = fov * (Camera.ViewportSize.Y / 1080)
+    if not aimbotEnabled then return end
+    local target = getClosestTarget()
+    if target then
+        local currentCF = Camera.CFrame
+        local direction = (target.Position - currentCF.Position).Unit
+        local newLook = currentCF.LookVector:Lerp(direction, math.clamp(aggression * 0.2, 0.05, 1))
+        Camera.CFrame = CFrame.new(currentCF.Position, currentCF.Position + newLook)
+    end
+end)
+
+-- Cleanup
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        fovCircle:Remove()
+        gui:Destroy()
+    end
+end)
